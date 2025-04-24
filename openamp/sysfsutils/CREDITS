@@ -1,0 +1,80 @@
+
+The authors of sysfsutils would like to thank the following people who
+have made contributions:
+
+	o Lev Makhlis <mlev@despammed.com>:
+		- Supplied libsysfs code cleanup including code
+			simplification, read-only strings, and
+			C++ compatibility.
+	o Eric J Bohm <bohm@gate.csgeeks.org>:
+		- Supplied dlist generic linked list implementation.
+		- Added dlist_for_each* functionality.
+        o Guo Min <min.guo@intel.com>:
+                - Supplied sysfs_write_attribute patch
+	o Martin Mares <mj@ucw.cz>
+		- Author of pciutils. Reused the pci name decoding
+			from Martin's library.
+	o Martin Pitt <mpitt@debian.org>
+		- Supplied initial makefiles for lsbus and systool
+	o Martin Hicks <mort@bork.org>
+		- Supplied patch to fix class_device functions
+	o Brian King <brking@us.ibm.com>
+		- Supplied patch to fix a memory leak in sysfs_dir.c
+	o Martin Schlemmer <azarah@gentoo.org>
+		- Supplied patch to prevent checks for installed
+			headers, while building.
+	o Lev Makhlis <mlev@despammed.com>
+		- Supplied patch to make library C++ compatible.
+	o Dr. Hannes Reinecke <hare@suse.de>
+		- Supplied patch to fix SEGV in dlist.c
+	o Arun Bhanu <arun@codemovers.org>
+		- Supplied patch to fix docs/libsysfs.txt
+	o Kay Sievers <kay.sievers@vrfy.org>
+		- Supplied patch to fix sysfs_get_classdir_attr when
+			the directory vanishes from under us.
+		- Updates for building with udev and klibc.
+		- Numerous other updates, cleanups and general guidelines
+	o Dominik Brodowski <linux@dominikbrodowski.net>
+		- Fix feature in sysfs_write_attribute(), will now
+			write new value to attribute if attribute
+			is a show method and previously had nothing
+			to be read.
+	o Martin Schlemmer <azarah@nosferatu.za.org>
+		- KLIBC updates
+	o Pavel Roskin <proski@gnu.org>
+		- Use buildroot for rpmbuilds
+	o Lee Duncan <lduncan@suse.com>
+                - Supplied patches to fix compilation bugs/warnings
+		  with GCC 7/10.
+                - Improved the build scripts to work latest autotools
+		  and work with git repository.
+                - Numerous other patches to fix various bugs.
+		- Updated the README info on how to file issues.
+		- Supplied patch to add SUSE-specific libsysfs.conf
+	o Christopher Engelhard <ce@lcts.de>
+		- Supplied patch to fix adjusting COPYING file to
+		  reflect set of directories covered under GPLv2.
+		- Supplied patch to fix address in the licensing files
+		  cmd/GPL and lib/LGPL.
+		- Numerous other patches to fix various bugs.
+	o Aurelien Jarno <aurel32@debian.org>
+		- Supplied patch to fix missing m4 macro directory.
+	o Guillem Jover <guillem@hadrons.org>
+		- Modernized the build system to use the latest autotools.
+		- Cleaned up the build scripts to remove obsolete files,
+		  hooks and improved the build scripts to work with git.
+		- Supplied patch to convert bash to POSIX portable syntax.
+		- Supplied patch to introduce pkg-confile to replace
+		  libtool for library detection and linking.
+		- Supplied patch to add out-of-tree support.
+		- Supplied patch to add make rule to move test program
+		  into check_PROGRAMS.
+	o Martin Pitt <mpitt@debian.org>
+		- Supplied patch to valid mount point in
+		  sysfs_get_mnt_path().
+	o Timm Bäder <tbaeder@redhat.com>
+		- Supplied patch to rename dprintf() to debugprintf(),
+		  to avoid collision with glibc macros.
+
+Please visit pulls/issues page at https://github.com/linux-ras/sysfsutils
+for more information.

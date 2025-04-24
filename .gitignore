@@ -6,10 +6,11 @@
 *.ko
 *.obj
 *.elf
+*.bin
 
 # Linker output
 *.ilk
-*.map
+# *.map
 *.exp
 
 # Precompiled Headers
@@ -46,6 +47,9 @@
 *.mod*
 *.cmd
 .tmp_versions/
+products/
+CMakeFiles/
+build/
 modules.order
 Module.symvers
 Mkfile.old
