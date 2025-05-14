@@ -18,13 +18,14 @@ static int echo_cb(struct rpmsg_endpoint *ept, void *data, size_t len, uint32_t 
 static void echo_unbind_cb(struct rpmsg_endpoint *ept)
 {
     printf("echo_unbind_cb ept addr = 0x%X  dest_addr = 0x%X name = %s\n", ept->addr, ept->dest_addr, ept->name);
+    openamp_app_node_unregister(ECHO_NAME);
 }
 
 void app_echo_init(void)
 {
     struct openamp_app_node *echo_node = NULL;
 
-    echo_node = openamp_app_node_register(ECHO_NAME, RPMSG_ADDR_ANY, echo_cb, echo_unbind_cb);
+    echo_node = openamp_app_node_register(ECHO_NAME, RPMSG_ADDR_ANY, echo_cb, echo_unbind_cb, openamp_dev_get());
     if(echo_node == NULL)
     {
         printf("echo_node is NULL\n");
