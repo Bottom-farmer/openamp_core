@@ -4,7 +4,7 @@
 #define DEFAULT_PAGE_MASK  (-1U)
 
 static struct openamp_app_node app_node_head = {
-    .name      = NULL,
+    .name      = {0},
     .cb        = NULL,
     .unbind_cb = NULL,
     .src       = 0,
@@ -123,63 +123,35 @@ static void *openamp_pthread_entry(void *parameter)
     pthread_exit(NULL);
 }
 
+static int default_bind_cb(struct rpmsg_endpoint *ept, void *data, size_t len, uint32_t src, void *priv)
+{
+    ((uint8_t *)data)[len] = 0;
+
+    printf("default_cb cpu#%d src:0x%X, len:%d, data:%s\n", 0, src, len, data);
+}
+
+static void default_unbind_cb(struct rpmsg_endpoint *ept)
+{
+    printf("default_uncb ept addr = 0x%X  dest_addr = 0x%X name = %s\n", ept->addr, ept->dest_addr, ept->name);
+    openamp_app_node_unregister(ept->name);
+}
+
 static void openamp_ns_bind_cb(struct rpmsg_device *rdev, const char *name, uint32_t dest)
 {
     openamp_app_node_t app_node  = NULL;
     struct metal_list *node_list = NULL;
+    openamp_app_node_t trav_node = NULL;
 
     if(name == NULL || rdev == NULL)
     {
         return;
     }
 
-    printf("openamp_ns_bind_cb dest = 0x%X name = %s\n", dest, name);
-
-    metal_list_for_each(&app_node_head.node_list, node_list)
-    {
-        if((!strcmp(name, app_node->name)) && app_node->cb && app_node->unbind_cb)
-        {
-            app_node = metal_container_of(node_list, struct openamp_app_node, node_list);
-            if(app_node == NULL)
-            {
-                printf("app_node is NULL\n");
-                break;
-            }
-
-            app_node->dest = dest;
-#ifdef AMP_MASTER
-            rpmsg_create_ept(&app_node->ept, rdev, name, app_node->src, dest, app_node->cb, app_node->unbind_cb);
-#else
-            rpmsg_create_ept(&app_node->ept, rdev, name, dest, app_node->src, app_node->cb, app_node->unbind_cb);
-#endif
-            break;
-        }
-    }
-}
-
-openamp_app_node_t openamp_app_node_register(const char *name, uint32_t src, rpmsg_ept_cb cb, rpmsg_ns_unbind_cb unbind_cb)
-{
-    openamp_app_node_t app_node  = NULL;
-    openamp_app_node_t trav_node = NULL;
-    struct metal_list *node_list = NULL;
-
-    if(name == NULL || dev == NULL)
-    {
-        printf("app_node name or dev is NULL\n");
-        return NULL;
-    }
-
-    if(app_node->cb || app_node->unbind_cb)
-    {
-        printf("app_node cb/unbind_cb is NULL\n");
-        return NULL;
-    }
-
     app_node = metal_allocate_memory(sizeof(struct openamp_app_node));
     if(app_node == NULL)
     {
         printf("app_node malloc failed\n");
-        return NULL;
+        return;
     }
 
     memset((void *)app_node, 0, sizeof(struct openamp_app_node));
@@ -195,23 +167,98 @@ openamp_app_node_t openamp_app_node_register(const char *name, uint32_t src, rpm
 
         if(!strcmp(name, trav_node->name))
         {
-            printf("app_node name is already exist\n");
             metal_free_memory(app_node);
-            return NULL;
+            printf("app_node name is already exist\n");
+            return;
         }
     }
 
-    app_node->name      = name;
+    strncpy(app_node->name, name, OPENAMP_APP_NODE_NAME_MAXLEN);
+    app_node->dest      = dest;
+    app_node->cb        = default_bind_cb;
+    app_node->unbind_cb = default_unbind_cb;
+    metal_list_add_head(&app_node_head.node_list, &app_node->node_list);
+
+    rpmsg_create_ept(&app_node->ept, rdev, app_node->name, RPMSG_ADDR_ANY, RPMSG_ADDR_ANY, app_node->cb, app_node->unbind_cb);
+    app_node->ept.dest_addr = dest;
+
+    printf("\n(%s) app node default cb/uncb function is currently in use, and the default can be modified using the register function!\n",
+           app_node->name);
+}
+
+openamp_app_node_t openamp_app_node_register(const char *name, rpmsg_ept_cb cb, rpmsg_ns_unbind_cb unbind_cb, openamp_virtio_device_t dev)
+{
+    openamp_app_node_t app_node  = NULL;
+    openamp_app_node_t trav_node = NULL;
+    struct metal_list *node_list = NULL;
+    char               node_flag = 0;
+
+    if(name == NULL || dev == NULL)
+    {
+        printf("app_node name or dev is NULL\n");
+        return NULL;
+    }
+
+    if(cb == NULL || unbind_cb == NULL)
+    {
+        printf("app_node cb/unbind_cb is NULL\n");
+        return NULL;
+    }
+
+    app_node = metal_allocate_memory(sizeof(struct openamp_app_node));
+    if(app_node == NULL)
+    {
+        printf("app_node malloc failed\n");
+        return NULL;
+    }
+
+    memset((void *)app_node, 0, sizeof(struct openamp_app_node));
+
+    strncpy(app_node->name, name, OPENAMP_APP_NODE_NAME_MAXLEN);
+
+    metal_list_for_each(&app_node_head.node_list, node_list)
+    {
+        trav_node = metal_container_of(node_list, struct openamp_app_node, node_list);
+        if(trav_node == NULL)
+        {
+            printf("app_node is NULL\n");
+            break;
+        }
+
+        if(!strcmp(name, trav_node->name))
+        {
+            metal_free_memory(app_node);
+            if(trav_node->cb == NULL && trav_node->unbind_cb == NULL)
+            {
+                printf("trav_node cb/unbind_cb is NULL\n");
+                return trav_node;
+            }
+
+            if(trav_node->cb == cb && trav_node->unbind_cb == unbind_cb)
+            {
+                printf("app_node name is already exist\n");
+                return trav_node;
+            }
+            else
+            {
+                trav_node->ept.cb           = cb;
+                trav_node->ept.ns_unbind_cb = unbind_cb;
+                printf("(%s) node change cb/unbind_cb\n", trav_node->name);
+                return trav_node;
+            }
+        }
+    }
+
     app_node->cb        = cb;
     app_node->unbind_cb = unbind_cb;
-    app_node->src       = src;
+
     metal_list_add_head(&app_node_head.node_list, &app_node->node_list);
     rpmsg_create_ept(&app_node->ept, &dev->rvdev.rdev, app_node->name, RPMSG_ADDR_ANY, RPMSG_ADDR_ANY, app_node->cb, app_node->unbind_cb);
 
     return app_node;
 }
 
-void openamp_app_node_unregister(const char *name)
+int openamp_app_node_unregister(const char *name)
 {
     openamp_app_node_t app_node  = NULL;
     struct metal_list *node_list = NULL;
@@ -223,15 +270,15 @@ void openamp_app_node_unregister(const char *name)
 
     metal_list_for_each(&app_node_head.node_list, node_list)
     {
+        app_node = metal_container_of(node_list, struct openamp_app_node, node_list);
+        if(app_node == NULL)
+        {
+            printf("app_node is NULL\n");
+            return -1;
+        }
+
         if(!strcmp(name, app_node->name))
         {
-            app_node = metal_container_of(node_list, struct openamp_app_node, node_list);
-            if(app_node == NULL)
-            {
-                printf("app_node is NULL\n");
-                return -1;
-            }
-
             rpmsg_destroy_ept(&app_node->ept);
             metal_list_del(&app_node->node_list);
             metal_free_memory(app_node);
@@ -239,6 +286,8 @@ void openamp_app_node_unregister(const char *name)
             return 0;
         }
     }
+
+    return -1;
 }
 
 openamp_app_node_t openamp_find_app_node(const char *name)
@@ -269,21 +318,28 @@ openamp_app_node_t openamp_find_app_node(const char *name)
     return NULL;
 }
 
-int openamp_app_send(struct rpmsg_endpoint *ept, const void *data, size_t len)
+void openamp_dump_app_node(void)
 {
-    int ret = -1;
+    openamp_app_node_t app_node  = NULL;
+    struct metal_list *node_list = NULL;
 
-    if(ept == NULL || data == NULL || len == 0)
+    metal_list_for_each(&app_node_head.node_list, node_list)
     {
-        return ret;
-    }
+        app_node = metal_container_of(node_list, struct openamp_app_node, node_list);
+        if(app_node == NULL)
+        {
+            printf("app_node is NULL\n");
+            break;
+        }
 
-    if(rpmsg_send(ept, data, len) == len)
-    {
-        ret = len;
-    }
+        if(app_node->cb == NULL || app_node->unbind_cb == NULL)
+        {
+            continue;
+        }
 
-    return ret;
+        printf("Dump app node name:%s src:%x dest:%x cb:%x unbind_cb:%x\n", app_node->name, app_node->ept.addr, app_node->ept.dest_addr,
+               app_node->ept.cb, app_node->ept.ns_unbind_cb);
+    }
 }
 
 int openamp_dev_create(openamp_virtio_device_t dev)

@@ -35,9 +35,13 @@
 
 #define ALIGN(size, align)         ((uintptr_t)((size) + (align) - 1) & (~((uintptr_t)(align) - 1)))
 
+#ifndef OPENAMP_APP_NODE_NAME_MAXLEN
+#define OPENAMP_APP_NODE_NAME_MAXLEN 20
+#endif
+
 struct openamp_app_node {
     struct rpmsg_endpoint ept;
-    const char           *name;
+    char                  name[OPENAMP_APP_NODE_NAME_MAXLEN];
     uint32_t              src;
     uint32_t              dest;
     rpmsg_ept_cb          cb;
@@ -84,10 +88,10 @@ typedef struct openamp_virtio_device *openamp_virtio_device_t;
 int                     openamp_dev_create(openamp_virtio_device_t dev);
 int                     openamp_dev_delete(openamp_virtio_device_t dev);
 openamp_virtio_device_t openamp_dev_get(void);
-openamp_app_node_t      openamp_app_node_register(const char *name, uint32_t src, rpmsg_ept_cb cb, rpmsg_ns_unbind_cb unbind_cb,
-                                                  openamp_virtio_device_t dev);
+openamp_app_node_t      openamp_app_node_register(const char *name, rpmsg_ept_cb cb, rpmsg_ns_unbind_cb unbind_cb, openamp_virtio_device_t dev);
 void                    openamp_app_node_unregister(const char *name);
 openamp_app_node_t      openamp_find_app_node(const char *name);
+void                    openamp_dump_app_node(void);
 int                     openamp_app_send(struct rpmsg_endpoint *ept, const void *data, size_t len);
 
 #endif /* __OPERATION_INTERFACE_H__ */
