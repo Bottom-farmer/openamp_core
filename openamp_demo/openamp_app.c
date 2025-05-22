@@ -35,9 +35,7 @@ int main(int argc, char **argv)
     char data_buf[256] = {0};
 
     openamp_dev_create(&app);
-    app_echo_init();
 
-    sleep(1);
     printf("openamp_app_init done\n");
 
     while(1)
@@ -48,6 +46,18 @@ int main(int argc, char **argv)
         {
             printf("send '%s' to sceondary\n", data_buf);
             app_echo_send(data_buf);
+        }
+        else if(!strcmp(cmd_buf, "init"))
+        {
+            app_echo_init();
+        }
+        else if(!strcmp(cmd_buf, "dein"))
+        {
+            openamp_app_node_unregister("echo");
+        }
+        else
+        {
+            printf("command error\n");
         }
 
         usleep(10000);

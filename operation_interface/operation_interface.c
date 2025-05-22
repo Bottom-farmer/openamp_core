@@ -12,6 +12,8 @@ static struct openamp_app_node app_node_head = {
     .node_list = METAL_INIT_LIST(app_node_head.node_list),
 };
 
+static openamp_virtio_device_t opdev = NULL;
+
 static int openamp_dev_role_get(void)
 {
 #ifdef AMP_MASTER
@@ -27,7 +29,7 @@ static uint8_t Virtio_get_status(struct virtio_device *vdev)
 
     if(vdev == NULL)
     {
-        return;
+        return -1;
     }
 
     dev = metal_container_of(vdev, struct openamp_virtio_device, vdev);
@@ -128,6 +130,8 @@ static int default_bind_cb(struct rpmsg_endpoint *ept, void *data, size_t len, u
     ((uint8_t *)data)[len] = 0;
 
     printf("default_cb cpu#%d src:0x%X, len:%d, data:%s\n", 0, src, len, data);
+
+    return 0;
 }
 
 static void default_unbind_cb(struct rpmsg_endpoint *ept)
@@ -205,17 +209,6 @@ openamp_app_node_t openamp_app_node_register(const char *name, rpmsg_ept_cb cb, 
         return NULL;
     }
 
-    app_node = metal_allocate_memory(sizeof(struct openamp_app_node));
-    if(app_node == NULL)
-    {
-        printf("app_node malloc failed\n");
-        return NULL;
-    }
-
-    memset((void *)app_node, 0, sizeof(struct openamp_app_node));
-
-    strncpy(app_node->name, name, OPENAMP_APP_NODE_NAME_MAXLEN);
-
     metal_list_for_each(&app_node_head.node_list, node_list)
     {
         trav_node = metal_container_of(node_list, struct openamp_app_node, node_list);
@@ -227,7 +220,6 @@ openamp_app_node_t openamp_app_node_register(const char *name, rpmsg_ept_cb cb, 
 
         if(!strcmp(name, trav_node->name))
         {
-            metal_free_memory(app_node);
             if(trav_node->cb == NULL && trav_node->unbind_cb == NULL)
             {
                 printf("trav_node cb/unbind_cb is NULL\n");
@@ -249,6 +241,16 @@ openamp_app_node_t openamp_app_node_register(const char *name, rpmsg_ept_cb cb, 
         }
     }
 
+    app_node = metal_allocate_memory(sizeof(struct openamp_app_node));
+    if(app_node == NULL)
+    {
+        printf("app_node malloc failed\n");
+        return NULL;
+    }
+
+    memset((void *)app_node, 0, sizeof(struct openamp_app_node));
+
+    strncpy(app_node->name, name, OPENAMP_APP_NODE_NAME_MAXLEN);
     app_node->cb        = cb;
     app_node->unbind_cb = unbind_cb;
 
@@ -279,13 +281,15 @@ int openamp_app_node_unregister(const char *name)
 
         if(!strcmp(name, app_node->name))
         {
-            rpmsg_destroy_ept(&app_node->ept);
             metal_list_del(&app_node->node_list);
+            rpmsg_destroy_ept(&app_node->ept);
             metal_free_memory(app_node);
 
             return 0;
         }
     }
+
+    printf("app node name is not exist\n");
 
     return -1;
 }
@@ -315,6 +319,8 @@ openamp_app_node_t openamp_find_app_node(const char *name)
         }
     }
 
+    printf("app node name is not exist\n");
+
     return NULL;
 }
 
@@ -340,6 +346,23 @@ void openamp_dump_app_node(void)
         printf("Dump app node name:%s src:%x dest:%x cb:%x unbind_cb:%x\n", app_node->name, app_node->ept.addr, app_node->ept.dest_addr,
                app_node->ept.cb, app_node->ept.ns_unbind_cb);
     }
+}
+
+int openamp_app_send(struct rpmsg_endpoint *ept, const void *data, size_t len)
+{
+    int ret = -1;
+
+    if(ept == NULL || data == NULL || len == 0)
+    {
+        return ret;
+    }
+
+    if(rpmsg_send(ept, data, len) == len)
+    {
+        ret = len;
+    }
+
+    return ret;
 }
 
 int openamp_dev_create(openamp_virtio_device_t dev)
@@ -444,6 +467,8 @@ int openamp_dev_create(openamp_virtio_device_t dev)
 
     rpmsg_virtio_init_shm_pool(&dev->shpool, (void *)dev->vring_buf, (size_t)dev->vring_size);
     rpmsg_init_vdev(&dev->rvdev, &dev->vdev, openamp_ns_bind_cb, shm_io, &dev->shpool);
+
+    opdev = dev;
 
     ret = pthread_create(&tid, NULL, openamp_pthread_entry, (void *)dev);
     if(ret != 0)
