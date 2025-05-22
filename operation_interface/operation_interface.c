@@ -226,7 +226,7 @@ openamp_app_node_t openamp_app_node_register(const char *name, rpmsg_ept_cb cb, 
                 return trav_node;
             }
 
-            if(trav_node->cb == cb && trav_node->unbind_cb == unbind_cb)
+            if(trav_node->ept.cb == cb && trav_node->ept.ns_unbind_cb == unbind_cb)
             {
                 printf("app_node name is already exist\n");
                 return trav_node;
