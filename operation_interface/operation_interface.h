@@ -81,7 +81,8 @@ struct openamp_virtio_device {
     unsigned int                 vring_size;
     unsigned int                 align_size;
     unsigned int                 vdev_status_size;
-    void                        *user_data;
+    int (*auto_node_register)(const char *name);
+    void *user_data;
 };
 typedef struct openamp_virtio_device *openamp_virtio_device_t;
 

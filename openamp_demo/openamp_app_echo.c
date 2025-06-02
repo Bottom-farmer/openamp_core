@@ -1,7 +1,5 @@
 #include "openamp_app.h"
 
-#define ECHO_NAME "echo"
-
 static int echo_cb(struct rpmsg_endpoint *ept, void *data, size_t len, uint32_t src, void *priv)
 {
     ((uint8_t *)data)[len] = 0;

@@ -12,6 +12,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define ECHO_NAME "echo"
+
 void app_echo_init(void);
 int  app_echo_send(char *send_buf);
 

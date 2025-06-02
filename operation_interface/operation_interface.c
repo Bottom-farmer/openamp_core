@@ -142,9 +142,10 @@ static void default_unbind_cb(struct rpmsg_endpoint *ept)
 
 static void openamp_ns_bind_cb(struct rpmsg_device *rdev, const char *name, uint32_t dest)
 {
-    openamp_app_node_t app_node  = NULL;
-    struct metal_list *node_list = NULL;
-    openamp_app_node_t trav_node = NULL;
+    openamp_app_node_t            app_node  = NULL;
+    struct metal_list            *node_list = NULL;
+    openamp_app_node_t            trav_node = NULL;
+    struct openamp_virtio_device *dev       = NULL;
 
     if(name == NULL || rdev == NULL)
     {
@@ -186,8 +187,16 @@ static void openamp_ns_bind_cb(struct rpmsg_device *rdev, const char *name, uint
     rpmsg_create_ept(&app_node->ept, rdev, app_node->name, RPMSG_ADDR_ANY, RPMSG_ADDR_ANY, app_node->cb, app_node->unbind_cb);
     app_node->ept.dest_addr = dest;
 
-    printf("\n(%s) app node default cb/uncb function is currently in use, and the default can be modified using the register function!\n",
-           app_node->name);
+    dev = (struct openamp_virtio_device *)((struct rpmsg_virtio_device *)rdev);
+    if(dev->auto_node_register != NULL)
+    {
+        dev->auto_node_register(name);
+    }
+    else
+    {
+        printf("\n(%s) app node default cb/uncb function is currently in use, and the default can be modified using the register function!\n",
+               app_node->name);
+    }
 }
 
 openamp_app_node_t openamp_app_node_register(const char *name, rpmsg_ept_cb cb, rpmsg_ns_unbind_cb unbind_cb, openamp_virtio_device_t dev)
