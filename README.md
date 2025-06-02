@@ -18,7 +18,7 @@ openamp_core/
 ├── scripts/				# 脚本文件
 ```
 
-### 使用说明
+### 编译说明
 1. 根据需要自行修改**./build.sh**和**./openamp/build.sh**编译参数相关配置：
 
 ```
@@ -65,7 +65,89 @@ Generated files in /openamp_core/products:
 internuclear.ko  openamp_demo  openamplibs  rtthread_amp_s.bin  tftp.sh
 ```
 
+### Openamp设备详解
+
+**openamp_dev_create**：创建Openamp设备
+
+参数说明：
+
+| 参数                        | 说明            |
+| --------------------------- | --------------- |
+| openamp_virtio_device_t dev | Openamp设备句柄 |
+
+**openamp_dev_delete**：删除Openamp设备
+
+参数说明：
+
+| 参数                        | 说明            |
+| --------------------------- | --------------- |
+| openamp_virtio_device_t dev | Openamp设备句柄 |
+
+**openamp_dev_get**：获取Openamp设备句柄
+
+参数说明：
+
+| 参数 | 说明 |
+| ---- | ---- |
+| void | NULL |
+
+### APP节点详解
+
+**openamp_app_node_register**：注册APP节点
+
+参数说明：
+
+| 参数                         | 说明                |
+| ---------------------------- | ------------------- |
+| const char *name             | APP节点名           |
+| rpmsg_ept_cb cb              | APP节点消息回调函数 |
+| rpmsg_ns_unbind_cb unbind_cb | APP节点删除回调函数 |
+| openamp_virtio_device_t dev  | Openamp设备         |
+
+**openamp_app_node_unregister**：删除APP节点
+
+参数说明：
+
+| 参数             | 说明      |
+| ---------------- | --------- |
+| const char *name | APP节点名 |
+
+**openamp_find_app_node**：寻找APP节点
+
+参数说明：
+
+| 参数             | 说明      |
+| ---------------- | --------- |
+| const char *name | APP节点名 |
+
+**openamp_app_send**：使用指定APP节点发送数据
+
+参数说明：
+
+| 参数                       | 说明               |
+| -------------------------- | ------------------ |
+| struct rpmsg_endpoint *ept | APP节点的Rpmsg句柄 |
+| const void *data           | APP节点消息缓冲区  |
+| size_t len                 | APP节点消息长度    |
+
+**openamp_dump_app_node**：打印已注册的APP节点
+
+参数说明：
+
+| 参数 | 说明 |
+| ---- | ---- |
+| void | NULL |
+
+### 示例使用说明
+
+```c
+command: echo <data> //使用echo发送数据命令
+command: init		 //echo节点初始化
+command: dein		 //echo节点删除
+```
+
 ### 注意事项
+
 - 修改配置文件后需要重新构建项目。
 - 确保依赖工具（如 CMake 和 GCC）已正确安装。
 - **linux**需要使能 **Hugepage** 支持，输入**./build.sh menuconfig** 进入配置界面。
